@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immobilienwertrechner (Sachwertverfahren BewG)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <h1>Immobilienwertrechner</h1>
+            <p>Ermittlung des steuerlichen Sachwerts nach §§ 189 ff. BewG</p>
+        </header>
+
+        <section class="summary-ribbon">
+            <div class="summary-card">
+                <span class="summary-label">1. Sachwert (Immobilie)</span>
+                <span class="summary-value" id="sum-modul-1">0 €</span>
+            </div>
+            <div class="summary-card">
+                <span class="summary-label">2. Wohnwert (Nießbrauch)</span>
+                <span class="summary-value" id="sum-modul-2">0 €</span>
+            </div>
+            <div class="summary-card">
+                <span class="summary-label">3. Steuerpfl. Erwerb</span>
+                <span class="summary-value" id="sum-modul-3">0 €</span>
+            </div>
+            <div class="summary-card">
+                <span class="summary-label">4. Notarkosten Gesamt</span>
+                <span class="summary-value" id="sum-modul-4">0 €</span>
+            </div>
+        </section>
+
+        <main class="dashboard">
+            <!-- INPUT SECTION -->
+            <aside class="panel input-panel">
+                <h2><span class="icon">📐</span> Objektdaten</h2>
+
+                <div class="data-controls" style="display: flex; gap: 10px; margin-bottom: 2rem;">
+                    <button id="btn-save-data" class="btn-action" style="flex: 1; justify-content: center;"
+                        title="Sichert alle aktuellen Eingaben als lokale .json Datei">
+                        <span class="icon">💾</span> Fall speichern
+                    </button>
+                    <button id="btn-load-data" class="btn-action" style="flex: 1; justify-content: center;"
+                        title="Lädt gesicherte Eingaben aus einer .json Datei">
+                        <span class="icon">📂</span> Fall laden
+                    </button>
+                    <input type="file" id="file-load-data" accept=".json" style="display: none;">
+                </div>
+
+                <div class="global-inputs">
+                    <h3>Grundstücksdaten (Global)</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="grundstueck">Grundstücksgröße
+                                <span class="info-icon" tabindex="0">?<span class="tooltip-box">Gesamtfläche des
+                                        Grundstücks. Fließt in den Umrechnungskoeffizienten (Anlage 36 BewG)
+                                        ein.</span></span>
+                            </label>
+                            <div class="input-with-unit">
+                                <input type="number" id="grundstueck" value="500" min="10">
+                                <span class="unit">m²</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="brw">Bodenrichtwert
+                                <span class="info-icon" tabindex="0">?<span class="tooltip-box">Muss zum
+                                        Bewertungsstichtag vom örtlichen Gutachterausschuss angefordert werden (§ 179
+                                        BewG).</span></span>
+                            </label>
+                            <div class="input-with-unit">
+                                <input type="number" id="brw" value="300" min="1">
+                                <span class="unit">€/m²</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bewertungsjahr">Bewertungsjahr</label>
+                            <input type="number" id="bewertungsjahr" value="2026">
+                        </div>
+                        <div class="form-group">
+                            <label for="bpi">Baupreisindex (BPI)
+                                <span class="info-icon" tabindex="0">?<span class="tooltip-box">Aktualisiert die RHK auf
+                                        den aktuellen Preis.</span></span>
+                            </label>
+                            <select id="bpi">
+                                <option value="177.9">177,9 (Stand 2024)</option>
+                                <option value="183.3">183,3 (Stand 2025)</option>
+                                <option value="189.1" selected>189,1 (Stand 2026)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="regionalfaktor">Regionalfaktor
+                            <span class="info-icon" tabindex="0">?<span class="tooltip-box">Gesetzlicher Standard:
+                                    1,0. Wird vom Gutachterausschuss ermittelt (§ 190 Abs. 5 BewG).</span></span>
+                        </label>
+                        <input type="number" id="regionalfaktor" value="1.0" step="0.01" min="0.5" max="2.0">
+                    </div>
+                </div>
+
+                <div class="building-group active" id="building-1-group">
+                    <h3>Wirtschaftseinheit 1 (Hauptgebäude)</h3>
+                    <div class="form-group">
+                        <label for="gebaeudeart-1">Gebäudeart <span class="info-icon" tabindex="0">?<span
+                                    class="tooltip-box">Bestimmt die anzuwendenden Regelherstellungskosten (RHK) nach
+                                    Anlage 24 zum BewG.</span></span></label>
+                        <select id="gebaeudeart-1" class="geb-select">
+                            <optgroup label="Keller, Erd- und Obergeschoss">
+                                <option value="1.11">1.11 freistehende Einfamilienhäuser (DG ausgebaut)</option>
+                                <option value="1.111">1.111 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.11">2.11 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.11">3.11 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.12" selected>1.12 freistehende Einfamilienhäuser (DG nicht ausgebaut)
+                                </option>
+                                <option value="1.121">1.121 freistehende Zweifamilienhäuser (DG nicht ausgeb.)
+                                </option>
+                                <option value="2.12">2.12 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.12">3.12 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Erdgeschoss, nicht unterkellert">
+                                <option value="1.21">1.21 freistehende Einfamilienhäuser (DG ausgebaut)</option>
+                                <option value="1.211">1.211 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.21">2.21 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.21">3.21 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.22">1.22 freistehende Einfamilienhäuser (DG nicht ausgebaut)</option>
+                                <option value="1.221">1.221 freistehende Zweifamilienhäuser (DG nicht ausgeb.)</option>
+                                <option value="2.22">2.22 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.22">3.22 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Erd- und Obergeschoss, nicht unterkellert">
+                                <option value="1.31">1.31 freistehende Einfamilienhäuser (DG ausgebaut)</option>
+                                <option value="1.311">1.311 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.31">2.31 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.31">3.31 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.32">1.32 freistehende Einfamilienhäuser (DG nicht ausgebaut)</option>
+                                <option value="1.321">1.321 freistehende Zweifamilienhäuser (DG nicht ausgeb.)</option>
+                                <option value="2.32">2.32 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.32">3.32 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Mehrfamilienhäuser und Mischgrundstücke">
+                                <option value="4.1">4.1 Mehrfamilienhäuser mit bis zu 6 WE</option>
+                                <option value="4.2">4.2 Mehrfamilienhäuser mit 7 bis 20 WE</option>
+                                <option value="4.3">4.3 Mehrfamilienhäuser mit mehr als 20 WE</option>
+                                <option value="5.1">5.1 Wohnhäuser mit Mischnutzung</option>
+                            </optgroup>
+                            <optgroup label="Nebengebäude und Werkstätten">
+                                <option value="14.1">14.1 Einzelgaragen / Mehrfachgaragen</option>
+                                <option value="15.1">15.1 Betriebs-/Werkstätten, eingeschossig</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bgf-1">Bruttogrundfläche <span class="info-icon" tabindex="0">?<span
+                                        class="tooltip-box">Nach Maßgabe der DIN 277. Beinhaltet alle Ebenen inkl.
+                                        Außenmauern und Treppen.</span></span></label>
+                            <div class="input-with-unit">
+                                <input type="number" id="bgf-1" value="150" min="10">
+                                <span class="unit">m²</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="baujahr-1">Baujahr</label>
+                            <input type="number" id="baujahr-1" value="2000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="standard-1">Ausstattungsstandard <span class="info-icon" tabindex="0">?<span
+                                    class="tooltip-box">Wird im Gutachten meist über ein Punktesystem
+                                    ermittelt.</span></span></label>
+                        <input type="number" id="standard-1" value="3.0" step="0.1" min="1.0" max="5.0">
+                        <div
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; line-height: 1.2;">
+                            1=Einfachst | 2=Einfach | 3=Mittel | 4=Gehoben | 5=Stark gehoben
+                        </div>
+                    </div>
+                </div>
+
+                <button id="add-building-btn" class="btn-secondary"
+                    style="margin-bottom: 1.5rem; width: 100%; border: 1px dashed var(--border);">+ Weiteres Gebäude auf
+                    Grundstück hinzufügen</button>
+
+                <div class="building-group hidden" id="building-2-group"
+                    style="display: none; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin-bottom: 0;">Wirtschaftseinheit 2 (Nebengebäude)</h3>
+                        <button id="remove-building-btn" class="btn-danger"
+                            style="padding: 0.2rem 0.5rem; font-size: 0.8rem; background: var(--warning); color: white; border: none; border-radius: 4px; cursor: pointer;">Entfernen</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gebaeudeart-2">Gebäudeart</label>
+                        <select id="gebaeudeart-2" class="geb-select">
+                            <optgroup label="Keller, Erd- und Obergeschoss">
+                                <option value="1.11">1.11 freistehende Einfamilienhäuser (DG ausgebaut)</option>
+                                <option value="1.111">1.111 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.11">2.11 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.11">3.11 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.12">1.12 freistehende Einfamilienhäuser (DG nicht ausgebaut)</option>
+                                <option value="1.121">1.121 freistehende Zweifamilienhäuser (DG nicht ausgeb.)</option>
+                                <option value="2.12">2.12 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.12">3.12 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Erdgeschoss, nicht unterkellert">
+                                <option value="1.21" selected>1.21 freistehende Einfamilienhäuser (DG ausgebaut)
+                                </option>
+                                <option value="1.211">1.211 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.21">2.21 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.21">3.21 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.22">1.22 freistehende Einfamilienhäuser (DG nicht ausgebaut)</option>
+                                <option value="1.221">1.221 freistehende Zweifamilienhäuser (DG nicht ausgeb.)</option>
+                                <option value="2.22">2.22 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.22">3.22 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Erd- und Obergeschoss, nicht unterkellert">
+                                <option value="1.31">1.31 freistehende Einfamilienhäuser (DG ausgebaut)</option>
+                                <option value="1.311">1.311 freistehende Zweifamilienhäuser (DG ausgebaut)</option>
+                                <option value="2.31">2.31 Doppel- und Reihenendhäuser (DG ausgebaut)</option>
+                                <option value="3.31">3.31 Reihenmittelhäuser (DG ausgebaut)</option>
+                                <option value="1.32">1.32 freistehende Einfamilienhäuser (DG nicht ausgebaut)</option>
+                                <option value="1.321">1.321 freistehende Zweifamilienhäuser (DG nicht ausgeb.)</option>
+                                <option value="2.32">2.32 Doppel- und Reihenendhäuser (DG nicht ausgebaut)</option>
+                                <option value="3.32">3.32 Reihenmittelhäuser (DG nicht ausgebaut)</option>
+                            </optgroup>
+                            <optgroup label="Mehrfamilienhäuser und Mischgrundstücke">
+                                <option value="4.1">4.1 Mehrfamilienhäuser mit bis zu 6 WE</option>
+                                <option value="4.2">4.2 Mehrfamilienhäuser mit 7 bis 20 WE</option>
+                                <option value="4.3">4.3 Mehrfamilienhäuser mit mehr als 20 WE</option>
+                                <option value="5.1">5.1 Wohnhäuser mit Mischnutzung</option>
+                            </optgroup>
+                            <optgroup label="Nebengebäude und Werkstätten">
+                                <option value="14.1">14.1 Einzelgaragen / Mehrfachgaragen</option>
+                                <option value="15.1">15.1 Betriebs-/Werkstätten, eingeschossig</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bgf-2">Bruttogrundfläche</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="bgf-2" value="" min="10" step="0.1">
+                                <span class="unit">m²</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="baujahr-2">Baujahr</label>
+                            <input type="number" id="baujahr-2" value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="standard-2">Ausstattungsstandard</label>
+                        <input type="number" id="standard-2" value="2.0" step="0.1" min="1.0" max="5.0">
+                        <div
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; line-height: 1.2;">
+                            1=Einfachst | 2=Einfach | 3=Mittel | 4=Gehoben | 5=Stark gehoben
+                        </div>
+                    </div>
+                </div>
+
+                <button id="calc-btn" class="btn-primary" style="margin-top: 1rem;">Berechnung Aktualisieren</button>
+            </aside>
+
+            <!-- OUTPUT SECTION -->
+            <section class="panel output-panel">
+                <h2><span class="icon">📈</span> Berechnungsschritte</h2>
+
+                <div class="steps-container">
+
+                    <!-- Step 1 -->
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">1</span>
+                            <h3>Bodenwert <a href="https://www.gesetze-im-internet.de/bewg/__179.html" target="_blank"
+                                    class="gesetz-link">(§ 179 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                <span class="val-input" id="out-grundstueck">0</span> m² ×
+                                <span class="val-input" id="out-brw">0</span> €/m² ×
+                                <span class="val-calc calc-tooltip" id="out-koeff">
+                                    <span class="val-text">1.0</span>
+                                    <span class="tooltip-box math-tooltip" id="tip-koeff"></span>
+                                </span>
+                                <a href="https://www.gesetze-im-internet.de/bewg/anlage_36.html" target="_blank"
+                                    class="gesetz-link">(Anlage 36)</a>
+                            </div>
+                            <div class="step-result">
+                                <span>= Bodenwert:</span>
+                                <strong id="res-bodenwert" class="text-highlight">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">2</span>
+                            <h3>Gebäudeherstellungswert (GHW) <a
+                                    href="https://www.gesetze-im-internet.de/bewg/__190.html" target="_blank"
+                                    class="gesetz-link">(§ 190 Abs. 1-5 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div id="ghw-details-container">
+                                <!-- JS Injects Multi-Building Lines Here -->
+                            </div>
+                            <div class="step-result" style="margin-top: 0.5rem;">
+                                <span>= GHW (Gesamt):</span>
+                                <strong id="res-ghw">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">3</span>
+                            <h3>Alterswertminderung <a href="https://www.gesetze-im-internet.de/bewg/__190.html"
+                                    target="_blank" class="gesetz-link">(§ 190 Abs. 6 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div id="rnd-details-container">
+                                <!-- JS Injects Multi-Building Lines Here -->
+                            </div>
+                            <div class="formula-line warning-line calc-tooltip" id="rule-30-warning"
+                                style="display: none;">
+                                ⚠️ 30%-Mindestansatz-Regel greift!
+                                <span class="tooltip-box math-tooltip">Für mindestens ein Gebäude lag der ermittelte
+                                    Alterswert unter der Kappungsgrenze von 30% des Bauwerts (§ 190 Abs. 6 Satz 5 BewG).
+                                    Der Sachwert dieses Gebäudes wurde auf 30% des GHW angehoben.</span>
+                            </div>
+                            <div class="step-result">
+                                <span>= Gebäudesachwert:</span>
+                                <strong id="res-gsw">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="step-card step-card-subtotal">
+                        <div class="step-header">
+                            <span class="step-number">4</span>
+                            <h3>Vorläufiger Sachwert <a href="https://www.gesetze-im-internet.de/bewg/__189.html"
+                                    target="_blank" class="gesetz-link">(§ 189 Abs. 3 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                <span class="val-calc">Bodenwert</span> + <span class="val-calc">Gebäudesachwert</span>
+                            </div>
+                            <div class="step-result">
+                                <span>= Vorl. Sachwert:</span>
+                                <strong id="res-vsw">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="step-card step-card-final">
+                        <div class="step-header">
+                            <span class="step-number">5</span>
+                            <h3>Marktanpassung / Finaler Sachwert <a
+                                    href="https://www.gesetze-im-internet.de/bewg/__191.html" target="_blank"
+                                    class="gesetz-link">(§ 191 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                Vorl. Sachwert ×
+                                <span class="val-calc calc-tooltip">
+                                    <span class="val-text" id="out-wertzahl">0.00</span>
+                                    <span class="tooltip-box math-tooltip" id="tip-wertzahl"></span>
+                                </span>
+                                <a href="https://www.gesetze-im-internet.de/bewg/anlage_25.html" target="_blank"
+                                    class="gesetz-link">(Anlage 25)</a>
+                            </div>
+                            <div class="step-result final">
+                                <span>Steuerlicher Sachwert:</span>
+                                <strong id="res-final">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <!-- MODUL 2: WOHNRECHT & NIESSBRAUCH -->
+        <div class="module-divider">
+            <h2>Modul 2: Wohnrecht & Nießbrauch (§ 14-16 BewG)</h2>
+            <p>Ermittlung des steuerlichen Kapitalwerts von lebenslangen Nutzungsrechten</p>
+        </div>
+
+        <main class="dashboard" id="modul-wohnrecht">
+            <aside class="panel input-panel">
+                <h2><span class="icon">👤</span> Berechtigter & Nutzung</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="wohn-alter">Alter (vollendet)</label>
+                        <input type="number" id="wohn-alter" value="75" min="0" max="105" placeholder="z. B. 84">
+                    </div>
+                    <div class="form-group">
+                        <label for="wohn-geschlecht">Geschlecht</label>
+                        <select id="wohn-geschlecht">
+                            <option value="m">Männlich</option>
+                            <option value="f">Weiblich</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="wohn-recht-art">Art des Nutzungsrechts</label>
+                    <select id="wohn-recht-art">
+                        <option value="wohnrecht">Wohnrecht (Nutzung einzelner Räume)</option>
+                        <option value="niessbrauch">Nießbrauch (Ertrag der Gesamtimmobilie)</option>
+                    </select>
+                </div>
+
+                <div class="form-row" id="inputs-wohnrecht">
+                    <div class="form-group">
+                        <label for="wohn-flaeche">Wohnfläche (WoFlV) <span class="info-icon" tabindex="0">?<span
+                                    class="tooltip-box">Nur die Räume, die exakt vom Wohnrecht erfasst werden
+                                    (BGB-Nutzung).</span></span></label>
+                        <div class="input-with-unit">
+                            <input type="number" id="wohn-flaeche" value="80" min="1">
+                            <span class="unit">m²</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="wohn-miete">Ortsübliche Miete <span class="info-icon" tabindex="0">?<span
+                                    class="tooltip-box">Fiktive Nettokaltmiete pro m². Ggf. dem Mietspiegel zu
+                                    entnehmen.</span></span></label>
+                        <div class="input-with-unit">
+                            <input type="number" id="wohn-miete" value="10.00" step="0.10">
+                            <span class="unit">€</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="inputs-niessbrauch" style="display: none;">
+                    <label for="wohn-monatsertrag">Monatlicher Reinertrag <span class="info-icon" tabindex="0">?<span
+                                class="tooltip-box">Monatliche Nettokaltmiete der gesamten Immobilie abzüglich vom
+                                Nießbraucher zu tragender Lasten.</span></span></label>
+                    <div class="input-with-unit">
+                        <input type="number" id="wohn-monatsertrag" value="" step="10">
+                        <span class="unit">€</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="wohn-immo-wert">Referenz-Immobilienwert (für § 16 Kappung) <span class="info-icon"
+                            tabindex="0">?<span class="tooltip-box">Wird automatisch aus Modul 1 übernommen. Kappt
+                                überhöhte
+                                Wohnrechte.</span></span></label>
+                    <div class="input-with-unit">
+                        <input type="number" id="wohn-immo-wert" value="0">
+                        <span class="unit">€</span>
+                    </div>
+                </div>
+
+            </aside>
+
+            <section class="panel output-panel">
+                <h2><span class="icon">📉</span> Kapitalwert-Berechnung</h2>
+
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">1</span>
+                            <h3>Jahreswert des Rechts <a href="https://www.gesetze-im-internet.de/bewg/__15.html"
+                                    target="_blank" class="gesetz-link">(§ 15 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                <span class="val-input" id="out-wohn-flaeche">75</span> m² × <span class="val-input"
+                                    id="out-wohn-miete">11,50</span> € × 12 Monate
+                            </div>
+                            <div class="step-result">
+                                <span>= Jahreswert:</span>
+                                <strong id="res-wohn-jahreswert" class="text-highlight">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">2</span>
+                            <h3>Wertkappung <a href="https://www.gesetze-im-internet.de/bewg/__16.html" target="_blank"
+                                    class="gesetz-link">(§ 16 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                Obergrenze: Immobilienwert ÷ 18,6 <span class="info-icon" tabindex="0">?<span
+                                        class="tooltip-box">BMF-Faktor gemäß R B 16 Abs. 1 ErbStR 2019. Entspricht dem
+                                        Kehrwert des gesetzlichen Zinssatzes von 5,5 % (§ 14 BewG),
+                                        aufgerundet.</span></span> = <span class="val-calc"
+                                    id="out-wohn-kappung Grenze">0
+                                    €</span>
+                            </div>
+                            <div class="formula-line warning-line calc-tooltip" id="wohn-kappung-warning"
+                                style="display: none; margin-top: 0.5rem;">
+                                ⚠️ Jahreswert nach § 16 BewG gekappt!
+                                <span class="tooltip-box math-tooltip">Der ermittelte Jahreswert aus der Miete ist höher
+                                    als
+                                    der Jahreswert der gesamten Immobilie (Immobilienwert / 18,6). Zur Berechnung wird
+                                    der
+                                    gedeckelte Betrag angesetzt.</span>
+                            </div>
+                            <div class="step-result">
+                                <span>= Maßgeblicher Jahreswert:</span>
+                                <strong id="res-wohn-massgeblich">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card step-card-final">
+                        <div class="step-header">
+                            <span class="step-number">3</span>
+                            <h3>Kapitalwert <a href="https://www.gesetze-im-internet.de/bewg/__14.html" target="_blank"
+                                    class="gesetz-link">(§ 14 BewG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                Maßgebl. Jahreswert ×
+                                <span class="val-calc calc-tooltip">
+                                    <span class="val-text" id="out-wohn-faktor">0.000</span>
+                                    <span class="tooltip-box math-tooltip" id="tip-wohn-faktor">BMF
+                                        Vervielfältigertabelle
+                                        nach Alter und Geschlecht. Enthält eine Zinsstaffel von 5,5%.</span>
+                                </span>
+                                (BMF Vervielfältiger)
+                            </div>
+                            <div class="step-result final">
+                                <span>Wohnrechts-Kapitalwert:</span>
+                                <strong id="res-wohn-kapitalwert">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- MODUL 3: SCHENKUNGSSTEUER -->
+        <div class="module-divider">
+            <h2>Modul 3: Schenkungs- / Erbschaftsteuer (ErbStG)</h2>
+            <p>Ermittlung der endgültigen Steuerlast nach Abzügen und Freibeträgen</p>
+        </div>
+
+        <main class="dashboard" id="modul-steuer">
+            <aside class="panel input-panel">
+                <h2><span class="icon">📜</span> Erwerber & Freibetrag</h2>
+
+                <div class="form-group">
+                    <label for="steuer-verwandtschaft">Verwandtschaftsgrad (Steuerklasse)</label>
+                    <select id="steuer-verwandtschaft">
+                        <optgroup label="Steuerklasse I">
+                            <option value="ehegatte" data-freibetrag="500000">Ehegatte / Lebenspartner (500.000 €)
+                            </option>
+                            <option value="kind" data-freibetrag="400000" selected>Kind / Stiefkind (400.000 €)</option>
+                            <option value="enkel_eltern_tot" data-freibetrag="400000">Enkelkind, Elternteil verstorben
+                                (400.000 €)</option>
+                            <option value="enkel" data-freibetrag="200000">Enkelkind (200.000 €)</option>
+                            <option value="eltern" data-freibetrag="100000">Eltern / Großeltern bei Erwerb von Todes
+                                wegen
+                                (100.000 €)</option>
+                        </optgroup>
+                        <optgroup label="Steuerklasse II">
+                            <option value="geschwister" data-freibetrag="20000">Geschwister / Nichten / Neffen /
+                                Stiefeltern
+                                (20.000 €)</option>
+                            <option value="eltern_schenkung" data-freibetrag="20000">Eltern / Großeltern bei Schenkungen
+                                (20.000 €)</option>
+                        </optgroup>
+                        <optgroup label="Steuerklasse III">
+                            <option value="sonstige" data-freibetrag="20000">Alle übrigen Erwerber / Dritte (20.000 €)
+                            </option>
+                        </optgroup>
+                    </select>
+                    <div class="form-group">
+                        <label for="steuer-immo-wert">Übertragener Immobilien-Anteil</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="steuer-immo-anteil" value="100" min="1" max="100"
+                                style="width: 80px;">
+                            <span>%</span>
+                            <span>von Gesamt (<span id="out-steuer-immo-gesamt">0</span> €)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group"
+                        style="margin-top: 1rem; padding: 0.8rem; background: var(--bg-hover); border-radius: 6px; border: 1px solid var(--border);">
+                        <label
+                            style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: normal; font-size: 0.9em; margin-bottom: 0;">
+                            <input type="checkbox" id="steuer-wohnrecht-voll" style="margin-top: 3px;">
+                            <span>
+                                <strong>Wohnrecht zu 100% abziehen</strong><br>
+                                <span style="color: var(--text-light); font-size: 0.9em;">(Aktivieren, wenn sich das
+                                    vorbehaltene Wohnrecht *ausschließlich* auf den übertragenen Gebäudeteil bezieht und
+                                    somit die Bereicherung voll mindert. Standard: anteiliger Abzug gemäß
+                                    Immobilien-Anteil.)</span>
+                            </span>
+                        </label>
+                    </div>
+
+            </aside>
+
+            <section class="panel output-panel">
+                <h2><span class="icon">⚖️</span> Steuerberechnung</h2>
+
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">1</span>
+                            <h3>Steuerpflichtiger Erwerb <a
+                                    href="https://www.gesetze-im-internet.de/erbstg_1974/__10.html" target="_blank"
+                                    class="gesetz-link">(§ 10 ErbStG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                <span class="val-input" id="out-steuer-immo-anteilig">0 €</span> (Haus-Anteil)<br>
+                                - <span class="val-input" id="out-steuer-wohnrecht">0 €</span> (Abzug Wohnrecht <span
+                                    id="out-steuer-wohnrecht-prozent"></span>)<br>
+                                - <span class="val-input" id="out-steuer-freibetrag">400.000 €</span> (Persönlicher
+                                Freibetrag)
+                            </div>
+                            <div class="step-result">
+                                <span>= Steuerpflichtige Bereicherung:</span>
+                                <strong id="res-steuer-bereicherung" class="text-highlight">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card step-card-final" style="border-top-color: var(--danger);">
+                        <div class="step-header">
+                            <span class="step-number">2</span>
+                            <h3>Fällige Schenkungssteuer <a
+                                    href="https://www.gesetze-im-internet.de/erbstg_1974/__19.html" target="_blank"
+                                    class="gesetz-link">(§ 19 ErbStG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                Steuersatz nach Klasse: <span class="val-calc" id="out-steuer-satz">0 %</span>
+                            </div>
+                            <div class="step-result final">
+                                <span>An das Finanzamt abzuführen:</span>
+                                <strong id="res-steuer-last" style="color: var(--danger);">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- MODUL 4: NOTARKOSTEN -->
+        <div class="module-divider">
+            <h2>Modul 4: Notar- & Grundbuchkosten (GNotKG)</h2>
+            <p>Ermittlung der voraussichtlichen Beurkundungs- und Vollzugskosten für die Übertragung</p>
+        </div>
+
+        <main class="dashboard" id="modul-notar">
+            <aside class="panel input-panel">
+                <h2><span class="icon">🏛️</span> Geschäftswert & Optionen</h2>
+
+                <div class="form-group">
+                    <label for="notar-geschaeftswert">Geschäftswert § 46 GNotKG <span class="info-icon"
+                            tabindex="0">?<span class="tooltip-box">Bei Grundstücksschenkungen ist dies der volle
+                                Verkehrswert. Etwaige
+                                Nutzungsrechte wie Nießbrauch/Wohnrecht werden gemäß § 52 GNotKG *nicht* abgezogen! Wird
+                                automatisch aus Modul 1 (Finaler Sachwert) importiert.</span></span></label>
+                    <div class="input-with-unit">
+                        <input type="number" id="notar-geschaeftswert" value="0">
+                        <span class="unit">€</span>
+                    </div>
+                </div>
+
+                <div class="form-group"
+                    style="margin-top: 1rem; padding: 0.8rem; background: var(--bg-hover); border-radius: 6px; border: 1px solid var(--border);">
+                    <label
+                        style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: normal; font-size: 0.9em; margin-bottom: 0.5rem;">
+                        <input type="checkbox" id="notar-vollzug" checked style="margin-top: 3px;">
+                        <span>
+                            <strong>Notarielle Vollzugsgebühr (0,5 Gebühr)</strong><br>
+                            <span style="color: var(--text-light); font-size: 0.9em;">Einholung von behördlichen
+                                Genehmigungen, Löschungsbewilligungen, etc. (KV 22110)</span>
+                        </span>
+                    </label>
+                    <label
+                        style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: normal; font-size: 0.9em; margin-bottom: 0;">
+                        <input type="checkbox" id="notar-grundbuch" checked style="margin-top: 3px;">
+                        <span>
+                            <strong>Grundbuchamt Eintragung (0,5 Gebühr)</strong><br>
+                            <span style="color: var(--text-light); font-size: 0.9em;">Kosten für die Umschreibung des
+                                Eigentümers im Grundbuch (KV 14110)</span>
+                        </span>
+                    </label>
+                </div>
+
+            </aside>
+
+            <section class="panel output-panel">
+                <h2><span class="icon">🧾</span> Kostenübersicht</h2>
+
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <span class="step-number">1</span>
+                            <h3>Gebührenberechnung (Tabelle B KostRÄG 2021) <a
+                                    href="https://www.gesetze-im-internet.de/gnotkg/__34.html" target="_blank"
+                                    class="gesetz-link">(§ 34 GNotKG)</a></h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="formula-line">
+                                Berechnete 1,0 Basisgebühr: <span class="val-calc" id="out-notar-basis">0
+                                    €</span><br><br>
+                                Beurkundung Schenkung (2,0) <span style="float: right;" id="out-notar-beurkundung">0
+                                    €</span><br>
+                                <span id="row-notar-vollzug">Vollzugsgebühr (0,5) <span style="float: right;"
+                                        id="out-notar-vollzug-val">0 €</span><br></span>
+                                <span id="row-notar-grundbuch">Grundbuchamt (0,5) <span style="float: right;"
+                                        id="out-notar-grundbuch-val">0 €</span><br></span>
+                                Auslagenpauschale (20 %, max. 20 €) <span style="float: right;"
+                                    id="out-notar-auslagen">20,00 €</span><br>
+                                Umsatzsteuer (19 % USt.) <span style="float: right;" id="out-notar-ust">0 €</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card step-card-final" style="border-top-color: var(--secondary);">
+                        <div class="step-header">
+                            <span class="step-number">2</span>
+                            <h3>Gesamte Übertragungskosten</h3>
+                        </div>
+                        <div class="step-body">
+                            <div class="step-result final">
+                                <span>Voraussichtliche Kosten:</span>
+                                <strong id="res-notar-gesamt" style="color: var(--secondary);">0 €</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Geprüft nach **Regel 01**. Daten basieren auf Anlagen zum BewG, Sterbetafel 2021/2023 und ErbStG.
+                Vervielfältiger werden interpolaritätsgenau abstrahiert.</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        // UI Logic for adding/removing building 2
+        document.getElementById('add-building-btn').addEventListener('click', function () {
+            document.getElementById('building-2-group').style.display = 'block';
+            document.getElementById('building-2-group').classList.add('active');
+            this.style.display = 'none';
+            if (typeof calculate === 'function') calculate();
+        });
+
+        document.getElementById('remove-building-btn').addEventListener('click', function () {
+            document.getElementById('building-2-group').style.display = 'none';
+            document.getElementById('building-2-group').classList.remove('active');
+            document.getElementById('add-building-btn').style.display = 'block';
+            if (typeof calculate === 'function') calculate();
+        });
+    </script>
+</body>
+
+</html>
